@@ -6,17 +6,19 @@
   "author": "catink123",
   "license": "MIT",
   "devDependencies": {
-    "@ava/typescript": "^3.0.1",
-    "ava": "^5.0.0",
-    "ts-node": "^10.9.1",
+    "@ava/typescript": "github:avajs/typescript",
+    "@types/node": "^18.7.16",
+    "ava": "^5.0.1",
     "typescript": "^4.7.4"
   },
   "ava": {
-    "extensions": {
-      "ts": "module"
+    "typescript": {
+      "rewritePaths": {
+        "src/": "dist/"
+      },
+      "compile": "tsc"
     },
     "nodeArguments": [
-      "--loader=ts-node/esm",
       "--experimental-specifier-resolution=node"
     ]
   },

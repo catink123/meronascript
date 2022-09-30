@@ -5,9 +5,10 @@ import {MSEventType, MSEventListener} from "./Event";
 export interface MSScriptOptions {}
 
 export const INTERNAL_COMMANDS: MSCommands = commandsFromObject({
-    let (args, vars) {
+    let (args, vars, se) {
       vars.set(args[0], args[1]);
-      // console.log(args, vars);
+      se.emit('stdout', args);
+      se.emit('stdout', vars);
     },
     println(args, _, se) {
       se.emit('stdout', args[0]);
