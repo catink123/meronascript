@@ -24,15 +24,6 @@ export class MSEngine {
         let scriptLines = scriptText
             .split(lineSplitRegExp)
             .map((line, index, arr) => index == arr.length - 1 ? line.match(lineClearEndsRegExp)[0] : line);
-        // let splitStatements = 
-        //   splitLines
-        //   .map(line => {
-        //     let parts = line.split(statementSplitRegExp);
-        //     let firstPart = parts[0];
-        //     let secondPart = parts.slice(parts.findIndex(val => val === firstPart) + 1).join(' ');
-        //     return [firstPart, secondPart];
-        //   });
-        // let scriptLines = scriptText.replaceAll(/[\r\n]/g, '').split(';').filter(val => val !== '');
         let scriptStatements = scriptLines.map(val => {
             let parts = val.split(statementSplitRegExp);
             return [parts.shift(), parts.join(' ')];
