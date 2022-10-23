@@ -6,7 +6,7 @@ import { commandsFromObject } from './Command';
 const test = anyTest;
 test.before('Setup MSEngine', (t) => {
     let printingText = 'Logging from MeronaScript!';
-    let testScript = `println '${printingText}';println |2 + 2|;`;
+    let testScript = `println '${printingText}'; println |"A JavaScript value: " + Math.random()|;`;
     let engine = new MSEngine(testScript, commandsFromObject({}));
     t.context = { printingText, testScript, engine };
 });
@@ -26,7 +26,7 @@ test('is the precompiledScript right?', (t) => {
             args: [
                 {
                     type: MSArgumentType.JavaScript,
-                    value: '2 + 2'
+                    value: '"A JavaScript value: " + Math.random()'
                 }
             ]
         }
@@ -34,11 +34,16 @@ test('is the precompiledScript right?', (t) => {
     t.is(JSON.stringify(t.context.engine.precompiledScript), JSON.stringify(expectedPrecompiledScript));
 });
 test('is it runnable?', (t) => {
-    t.context.engine.on('stdout', (e) => t.log(e.detail));
+    let listener = (e) => t.log(e.detail);
+    t.context.engine.on('stdout', listener);
     t.context.engine.run();
+    t.context.engine.removeListener(listener);
     t.pass('it does!');
 });
 test('does it run hot-loaded code?', (t) => {
-    t.context.engine.compileAndRun(`let 'text' 'Text in a variable';println text`);
+    let listener = (e) => t.log(e.detail);
+    t.context.engine.on('stdout', listener);
+    t.context.engine.compileAndRun("let 'text' 'Text in a variable'; println text; let 'x' 2; let 'y' 5; println |`Using JavaScript to compute values: x = ${x}, y = ${y}, x * y = ${x * y}`|;");
+    t.context.engine.removeListener(listener);
     t.pass('it does!');
 });

@@ -1,10 +1,12 @@
 import { MSArgumentType, parseArgString } from "./Argument";
 import { commandsFromObject } from "./Command";
+import { executeJS } from "./JSExecutor";
+const statementSplitRegExp = / /;
+const lineSplitRegExp = /;[\n ]+/mgs;
+const lineClearEndsRegExp = /^.+?(?=;)/mgs;
 export const INTERNAL_COMMANDS = commandsFromObject({
-    let(args, vars, se) {
+    let(args, vars) {
         vars.set(args[0], args[1]);
-        se.emit('stdout', args);
-        se.emit('stdout', vars);
     },
     println(args, _, se) {
         se.emit('stdout', args[0]);
@@ -19,9 +21,20 @@ export class MSEngine {
     }
     precompileScript(scriptText) {
         let precompiledScript;
-        let scriptLines = scriptText.replaceAll(/[\r\n]/g, '').split(';').filter(val => val !== '');
+        let scriptLines = scriptText
+            .split(lineSplitRegExp)
+            .map((line, index, arr) => index == arr.length - 1 ? line.match(lineClearEndsRegExp)[0] : line);
+        // let splitStatements = 
+        //   splitLines
+        //   .map(line => {
+        //     let parts = line.split(statementSplitRegExp);
+        //     let firstPart = parts[0];
+        //     let secondPart = parts.slice(parts.findIndex(val => val === firstPart) + 1).join(' ');
+        //     return [firstPart, secondPart];
+        //   });
+        // let scriptLines = scriptText.replaceAll(/[\r\n]/g, '').split(';').filter(val => val !== '');
         let scriptStatements = scriptLines.map(val => {
-            let parts = val.split(' ');
+            let parts = val.split(statementSplitRegExp);
             return [parts.shift(), parts.join(' ')];
         });
         precompiledScript = scriptStatements.map(statement => {
@@ -53,11 +66,12 @@ export class MSEngine {
                     return theVar;
                 }
                 if (arg.type === MSArgumentType.JavaScript) {
-                    return eval(arg.value);
+                    return executeJS(this.variables, arg.value);
                 }
             });
             commandToExecute(formattedArguments, this.variables, this);
         }
+        this.emit('completed');
     }
     compileAndRun(scriptText) {
         let precompiledScript = this.precompileScript(scriptText);
@@ -69,7 +83,7 @@ export class MSEngine {
         });
     }
     removeListener(callback) {
-        this.listeners.filter(val => val.callback === callback).forEach(listener => this.listeners.splice(this.listeners.findIndex(listener)));
+        this.listeners.filter(val => val.callback === callback).forEach(listener => this.listeners.splice(this.listeners.findIndex(val => val === listener)));
     }
     emit(type, detail) {
         this.listeners.filter(val => val.type === type).forEach(listener => listener.callback({ detail }));
