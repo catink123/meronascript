@@ -1,4 +1,3 @@
-#!/usr/bin/env node --experimental-specifier-resolution=node
 import anyTest from 'ava';
 import { MSEngine } from '.';
 import { MSArgumentType } from './Argument';
@@ -43,7 +42,7 @@ test('is it runnable?', (t) => {
 test('does it run hot-loaded code?', (t) => {
     let listener = (e) => t.log(e.detail);
     t.context.engine.on('stdout', listener);
-    t.context.engine.compileAndRun("let 'text' 'Text in a variable'; println text; let 'x' 2; let 'y' 5; println |`Using JavaScript to compute values: x = ${x}, y = ${y}, x * y = ${x * y}`|;");
+    t.context.engine.compileAndRun("let 'text' 'Text in a variable'; println text; let 'x' 2; let 'y' 5; println |`Using JavaScript to compute values: x = ${x}, y = ${y}, x * y = ${x * y}`|; func 'testfunc' 'println \"Logging to stdout from a function!\";'; testfunc;");
     t.context.engine.removeListener(listener);
     t.pass('it does!');
 });

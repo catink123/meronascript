@@ -6,4 +6,5 @@ export type MSEventListener = {type: MSEventType, callback: MSEventListenerCallb
 
 export type MSEventListenerCallback = (e: MSEvent) => void;
 
+// Removed completedInCG
 export type MSEventType = 'stdout' | 'completed' | 'started';

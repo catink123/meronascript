@@ -1,25 +1,27 @@
-import {MSArgumentType, parseArgString, MSArgument} from "./Argument";
+import {MSArgumentType} from "./Argument";
 import {commandsFromObject, MSCommand, MSCommands} from "./Command";
+import {MSPrecompiledScript, precompileScript} from "./Compiler";
 import {MSEventType, MSEventListenerCallback, MSEventListener} from "./Event";
 import {executeJS} from "./JSExecutor";
-
-const statementSplitRegExp = / /;
-const lineSplitRegExp = /;[\n ]+/mgs;
-const lineClearEndsRegExp = /^.+?(?=;)/mgs;
 
 export interface MSScriptOptions {}
 
 export const INTERNAL_COMMANDS: MSCommands = commandsFromObject({
-    let (args, vars) {
-      vars.set(args[0], args[1]);
-    },
-    println(args, _, se) {
-      se.emit('stdout', args[0]);
-    }
-  });
+  let (args, vars) {
+    vars.set(args[0], args[1]);
+  },
+  println (args, _, se) {
+    se.emit('stdout', args.map(val => JSON.stringify(val)).join(', '));
+  },
+  func (args, _, se) {
+    se.registeredCommands.set(args[0], se.compileAndRun.bind(se, args[1]));
+  }
+});
 
-export type MSPrecompiledScript = {command: string; args: MSArgument[]}[];
 export type MSVariables = Map<string, any>;
+export enum MSRunFlag {
+  // InsideCommandGroup
+}
 
 export class MSEngine {
   variables: MSVariables;
@@ -33,37 +35,14 @@ export class MSEngine {
   }
 
   precompileScript(scriptText: string) {
-    let precompiledScript: MSPrecompiledScript;
-
-    let scriptLines = 
-      scriptText
-        .split(lineSplitRegExp)
-        .map((line, index, arr) => index == arr.length - 1 ? line.match(lineClearEndsRegExp)[0] : line);
-
-    let scriptStatements = scriptLines.map(val => {
-      let parts = val.split(statementSplitRegExp);
-      return [parts.shift(), parts.join(' ')];
-    });
-
-    precompiledScript = scriptStatements.map(statement => {
-      const commandName = statement[0];
-      let argString = statement[1];
-      const args = parseArgString(argString);
-
-      return {
-        command: commandName,
-        args
-      };
-    });
-
-    return precompiledScript;
+    return precompileScript(scriptText);
   }
 
   run() {
     this.runPrecompiledScript(this.precompiledScript);
   }
 
-  runPrecompiledScript(precompiledScript: MSPrecompiledScript) {
+  runPrecompiledScript(precompiledScript: MSPrecompiledScript, flags?: MSRunFlag[]) {
     for (const statement of precompiledScript) {
       let commandToExecute = this.registeredCommands.get(statement.command);
       if (!commandToExecute) throw new Error("No such command: " + statement.command);
@@ -77,10 +56,16 @@ export class MSEngine {
         if (arg.type === MSArgumentType.JavaScript) {
           return executeJS(this.variables, arg.value);
         }
+        // if (arg.type === MSArgumentType.CommandGroup) {
+        //   return this.runPrecompiledScript(arg.value);
+        // }
       });
       commandToExecute(formattedArguments, this.variables, this);
     }
-    this.emit('completed');
+    if (flags) {
+      // if (flags.includes(MSRunFlag.InsideCommandGroup)) this.emit('completedInCG');
+    } else
+      this.emit('completed');
   }
 
   compileAndRun(scriptText: string) {
